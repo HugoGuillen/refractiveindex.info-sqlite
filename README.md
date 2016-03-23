@@ -12,5 +12,8 @@ See the [Tutorial notebook](Tutorial.ipynb)
 - scipy
 - pyyaml
 
+## Not implemented yet
+Formulas 4,7,8,9
+
 ## Version
 2016-03-23
