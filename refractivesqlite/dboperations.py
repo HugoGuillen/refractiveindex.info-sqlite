@@ -292,7 +292,7 @@ def _populate_sqlite_database(refractiveindex_db_path,new_sqlite_db,interpolatio
                        mat.rangeMax,
                        mat.points])
         except Exception as error:
-            print("Error in",pretty_entry(e),":",error)
+            print("LOG:",pretty_entry(e),":",error)
     conn.commit()
     conn.close()
     print("Wrote",new_sqlite_db)
