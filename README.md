@@ -4,7 +4,7 @@ Python 3 + SQLite wrapper for the [refractiveindex.info database](http://refract
 Database files parsing was made with a modified version of `refractiveIndex.py` from [PyTMM project](https://github.com/kitchenknif/PyTMM) by [Pavel Dmitriev](https://github.com/kitchenknif).
 
 ## Usage
-See the [Tutorial notebook](Tutorial.ipynb)
+Just copy the `refractivesqlite` folder to your project, and is ready to use. For more information, see the [Tutorial notebook](Tutorial.ipynb)
 
 ## Dependencies
 - python 3
