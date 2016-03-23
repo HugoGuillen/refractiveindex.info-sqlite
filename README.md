@@ -7,10 +7,10 @@ Database files parsing was made with a modified version of `refractiveIndex.py` 
 - Create SQLite database from refractiveindex yml folder.
 - Create SQLite database from refractiveindex.zip url.
 - Search database pages by approximate or exact terms.
-- Search material data by intervals.
+- Search material data (refractiveindex, extinctioncoefficient) by intervals.
 - Execute custom SQL queries on the database.
-- Export material data to numpy arrays or csv files.
-- Get data at specified wavelengths.
+- Export material data (refractiveindex, extinctioncoefficient) to numpy arrays or csv files.
+- Get data (refractiveindex, extinctioncoefficient) at specified wavelengths.
 
 ## Usage
 Just copy the `refractivesqlite` folder to your project, and you are ready. For more information, see the [Tutorial notebook](Tutorial.ipynb)
