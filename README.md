@@ -3,6 +3,15 @@ Python 3 + SQLite wrapper for the [refractiveindex.info database](http://refract
 
 Database files parsing was made with a modified version of `refractiveIndex.py` from [PyTMM project](https://github.com/kitchenknif/PyTMM) by [Pavel Dmitriev](https://github.com/kitchenknif).
 
+##Features
+- Create SQLite database from refractiveindex yml folder.
+- Create SQLite database from refractiveindex.zip url.
+- Search database pages by approximate or exact terms.
+- Search material data by intervals.
+- Execute custom SQL queries on the database.
+- Export material data to numpy arrays or csv files.
+- Get data at specified wavelengths.
+
 ## Usage
 Just copy the `refractivesqlite` folder to your project, and you are ready. For more information, see the [Tutorial notebook](Tutorial.ipynb)
 
