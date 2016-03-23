@@ -47,28 +47,28 @@ class Material:
                     if self.refractiveIndex is not None:
                         Exception('Bad Material YAML File')
 
-                    self.refractiveIndex = RefractiveIndexData.setupRefractiveIndex(formula=-1,
+                    self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=-1,
                                                                                     wavelengths=wavelengths,
                                                                                     values=n)
                 elif (data['type'].split())[1] == 'k':
 
-                    self.extinctionCoefficient = ExtinctionCoefficientData.setupExtinctionCoefficient(wavelengths, n)
+                    self.extinctionCoefficient = ExtinctionCoefficientData.SetupExtinctionCoefficient(wavelengths, n)
 
                     if previous_formula:
-                        self.refractiveIndex = RefractiveIndexData.setupRefractiveIndex(formula=formula,
-                                                                                rangeMin=rangeMin,
-                                                                                rangeMax=rangeMax,
-                                                                                coefficients=coefficents,
-                                                                                interpolation_points=self.points)
+                        self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=formula,
+                                                                                        rangeMin=rangeMin,
+                                                                                        rangeMax=rangeMax,
+                                                                                        coefficients=coefficents,
+                                                                                        interpolation_points=self.points)
                 elif (data['type'].split())[1] == 'nk':
 
                     if self.refractiveIndex is not None:
                         Exception('Bad Material YAML File')
 
-                    self.refractiveIndex = RefractiveIndexData.setupRefractiveIndex(formula=-1,
+                    self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=-1,
                                                                                     wavelengths=wavelengths,
                                                                                     values=n)
-                    self.extinctionCoefficient = ExtinctionCoefficientData.setupExtinctionCoefficient(wavelengths, k)
+                    self.extinctionCoefficient = ExtinctionCoefficientData.SetupExtinctionCoefficient(wavelengths, k)
             elif (data['type'].split())[0] == 'formula':
 
                 if self.refractiveIndex is not None:
@@ -79,7 +79,7 @@ class Material:
                 rangeMin = float(data['range'].split()[0])
                 rangeMax = float(data['range'].split()[1])
                 previous_formula = True
-                self.refractiveIndex = RefractiveIndexData.setupRefractiveIndex(formula=formula,
+                self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=formula,
                                                                                 rangeMin=rangeMin,
                                                                                 rangeMax=rangeMax,
                                                                                 coefficients=coefficents,
@@ -91,7 +91,7 @@ class Material:
             self.rangeMin = self.extinctionCoefficient.rangeMin
             self.rangeMax = self.extinctionCoefficient.rangeMax
 
-    def getRefractiveIndex(self, wavelength):
+    def get_refractiveindex(self, wavelength):
         """
 
         :param wavelength:
@@ -100,9 +100,9 @@ class Material:
         if self.refractiveIndex is None:
             raise Exception('No refractive index specified for this material')
         else:
-            return self.refractiveIndex.getRefractiveIndex(wavelength)
+            return self.refractiveIndex.get_refractiveindex(wavelength)
 
-    def getExtinctionCoefficient(self, wavelength):
+    def get_extinctioncoefficient(self, wavelength):
         """
 
         :param wavelength:
@@ -111,17 +111,17 @@ class Material:
         if self.extinctionCoefficient is None:
             raise NoExtinctionCoefficient('No extinction coefficient specified for this material')
         else:
-            return self.extinctionCoefficient.getExtinctionCoefficient(wavelength)
+            return self.extinctionCoefficient.get_extinction_coefficient(wavelength)
 
-    def getCompleteExtinction(self):
+    def get_complete_extinction(self):
         if self.has_extinction():
-            return self.extinctionCoefficient.getCompleteExtinction()
+            return self.extinctionCoefficient.get_complete_extinction()
         else:
             return None
 
-    def getCompleteRefractive(self):
+    def get_complete_refractive(self):
         if self.has_refractive():
-            return self.refractiveIndex.getCompleteRefractive()
+            return self.refractiveIndex.get_complete_refractive()
         else:
             return None
 
@@ -131,12 +131,12 @@ class Material:
     def has_extinction(self):
         return self.extinctionCoefficient is not None
 
-    def getPageInfo(self):
+    def get_page_info(self):
         return self.pageinfo
 
-    def toCSV(self,output):
-        refr = self.getCompleteRefractive()
-        ext = self.getCompleteExtinction()
+    def to_csv(self, output):
+        refr = self.get_complete_refractive()
+        ext = self.get_complete_extinction()
         #FizzFuzz
         if self.has_refractive() and self.has_extinction() and len(refr) == len(ext):
             header = "wl,n,k\n"
@@ -184,7 +184,7 @@ class RefractiveIndexData:
     """Abstract RefractiveIndex class"""
 
     @staticmethod
-    def setupRefractiveIndex(formula, **kwargs):
+    def SetupRefractiveIndex(formula, **kwargs):
         """
 
         :param formula:
@@ -198,7 +198,7 @@ class RefractiveIndexData:
         else:
             raise Exception('Bad RefractiveIndex data type')
 
-    def getRefractiveIndex(self, wavelength):
+    def get_refractiveindex(self, wavelength):
         """
 
         :param wavelength:
@@ -227,14 +227,14 @@ class FormulaRefractiveIndexData:
         if formula in [4,7,8,9]:
             raise FormulaNotImplemented('Formula '+str(formula)+ ' not yet implemented')
 
-    def getCompleteRefractive(self):
+    def get_complete_refractive(self):
         #print(self.rangeMin, self.rangeMax)
         wavelength = numpy.linspace(self.rangeMin, self.rangeMax,num=self.interpolation_points)
-        extlist = [[wavelength[i],self.getRefractiveIndex(wavelength[i]*1000)] for i in range(len(wavelength))]
+        extlist = [[wavelength[i], self.get_refractiveindex(wavelength[i] * 1000)] for i in range(len(wavelength))]
         #return numpy.array(extlist)
         return extlist
 
-    def getRefractiveIndex(self, wavelength):
+    def get_refractiveindex(self, wavelength):
         """
 
         :param wavelength:
@@ -315,7 +315,7 @@ class TabulatedRefractiveIndexData:
     def FromLists(wavelengths,values):
         return TabulatedRefractiveIndexData(wavelengths,values)
 
-    def getRefractiveIndex(self, wavelength):
+    def get_refractiveindex(self, wavelength):
         """
 
         :param wavelength:
@@ -330,7 +330,7 @@ class TabulatedRefractiveIndexData:
             raise Exception(
                 'Wavelength {} is out of bounds. Correct range(um): ({}, {})'.format(wavelength, self.rangeMin,
                                                                                      self.rangeMax))
-    def getCompleteRefractive(self):
+    def get_complete_refractive(self):
         extlist =  [[self.wavelengths[i],self.coefficients[i]] for i in range(len(self.wavelengths))]
         #return numpy.array(extlist)
         return extlist
@@ -343,7 +343,7 @@ class ExtinctionCoefficientData:
     """ExtinctionCofficient class"""
 
     @staticmethod
-    def setupExtinctionCoefficient(wavelengths, values):
+    def SetupExtinctionCoefficient(wavelengths, values):
         """
 
         :param wavelengths:
@@ -368,7 +368,7 @@ class ExtinctionCoefficientData:
         self.wavelengths = wavelengths
         self.coefficients = coefficients
 
-    def getExtinctionCoefficient(self, wavelength):
+    def get_extinction_coefficient(self, wavelength):
         """
 
         :param wavelength:
@@ -381,7 +381,7 @@ class ExtinctionCoefficientData:
             raise Exception(
                 'Wavelength {} is out of bounds. Correct range(um): ({}, {})'.format(wavelength, self.rangeMin,
                                                                                      self.rangeMax))
-    def getCompleteExtinction(self):
+    def get_complete_extinction(self):
         extlist =  [[self.wavelengths[i],self.coefficients[i]] for i in range(len(self.wavelengths))]
         #return numpy.array(extlist)
         return extlist

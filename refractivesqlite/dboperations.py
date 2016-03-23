@@ -2,6 +2,7 @@ from collections import namedtuple,OrderedDict
 import os
 import yaml
 import sqlite3
+import numpy as np
 
 from refractivesqlite import material
 from refractivesqlite.material import Material
@@ -17,6 +18,10 @@ class Database:
 
     def __init__(self, sqlitedbpath):
         self.db_path = sqlitedbpath
+        if not os.path.isfile(sqlitedbpath):
+            print("Database file not found.")
+        else:
+            print("Database file found at",sqlitedbpath)
 
     def create_database_from_folder(self, yml_database_path, interpolation_points=100):
         create_sqlite_database(yml_database_path, self.db_path,interpolation_points=interpolation_points)
@@ -25,6 +30,21 @@ class Database:
         Database.DownloadRIIzip(riiurl=riiurl)
         self.create_database_from_folder("database", interpolation_points=interpolation_points)
         pass
+
+    def check_url_version(self):
+        print(_riiurl)
+
+    def search_custom(self,sqlquery):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute(sqlquery)
+        results = c.fetchall()
+        if len(results)==0:
+            print("No results found.")
+        else:
+            print(len(results),"results found.")
+        conn.close()
+        return results
 
     def search_pages(self,term="",exact=False):
         conn = sqlite3.connect(self.db_path)
@@ -108,7 +128,7 @@ class Database:
                 print(r)
         conn.close()
 
-    def getMaterial(self,pageid):
+    def get_material(self, pageid):
         pagedata = self._get_page_info(pageid)
         if pagedata is None:
             print("PageID not found.")
@@ -128,7 +148,6 @@ class Database:
                 results = c.fetchall()
                 wavelengths_r = [r[0] for r in results]
                 refractive = [r[1] for r in results]
-                pass
             if pagedata['hasextinction'] == 1:
                 c.execute('''select wave,coeff
                             from extcoeff
@@ -137,29 +156,49 @@ class Database:
                 results = c.fetchall()
                 wavelengths_e = [r[0] for r in results]
                 extinction = [r[1] for r in results]
-                pass
             conn.close()
+            print("Material",pagedata['filepath'],"loaded.")
             return Material.FromLists(pagedata,wavelengths_r=wavelengths_r,refractive=refractive,
                                       wavelengths_e=wavelengths_e,extinction=extinction)
 
-    def getMaterialCSV(self,pageid,output="",folder=""):
-        mat = self.getMaterial(pageid)
+    def get_material_n_numpy(self,pageid):
+        mat = self.get_material(pageid)
+        if mat is None:
+            return None
+        n = mat.get_complete_refractive()
+        if n is None:
+            print("Material has no refractive data.")
+            return None
+        return np.array(n)
+
+    def get_material_k_numpy(self,pageid):
+        mat = self.get_material(pageid)
+        if mat is None:
+            return None
+        k = mat.get_complete_extinction()
+        if k is None:
+            print("Material has no extinction data.")
+            return None
+        return np.array(k)
+
+    def get_material_csv(self, pageid, output="", folder=""):
+        mat = self.get_material(pageid)
         if mat is None:
             print("PageID not found.")
             return None
-        matInfo = mat.getPageInfo()
+        matInfo = mat.get_page_info()
         #print(matInfo)
         if output=="":
             output = ",".join([str(matInfo['pageid']),matInfo['shelf'],matInfo['book'],matInfo['page']])+".csv"
         if folder != "":
-            output = os.path.join(folder,output)
-        mat.toCSV(output)
+            output = folder+os.sep+output
+        mat.to_csv(output)
 
-    def getAllMaterialCSV(self,outputfolder):
+    def get_material_csv_all(self, outputfolder):
         allids = self._get_all_pageids()
         for id in allids:
             print("Processing",id)
-            self.getMaterialCSV(pageid=id,output="",folder=outputfolder)
+            self.get_material_csv(pageid=id, output="", folder=outputfolder)
 
     def _get_pages_columns(self):
         conn = sqlite3.connect(self.db_path)
@@ -271,12 +310,12 @@ def _populate_sqlite_database(refractiveindex_db_path,new_sqlite_db,interpolatio
             hasrefractive=0
             hasextinction=0
             if mat.has_refractive():
-                refr = mat.getCompleteRefractive()
+                refr = mat.get_complete_refractive()
                 hasrefractive = 1
                 values = [[e.id,r[0],r[1]] for r in refr]
                 c.executemany('INSERT INTO refractiveindex VALUES (?,?,?)', values)
             if mat.has_extinction():
-                ext = mat.getCompleteExtinction()
+                ext = mat.get_complete_extinction()
                 hasextinction = 1
                 values = [[e.id,ex[0],ex[1]] for ex in ext]
                 c.executemany('INSERT INTO extcoeff VALUES (?,?,?)', values)
@@ -295,17 +334,19 @@ def _populate_sqlite_database(refractiveindex_db_path,new_sqlite_db,interpolatio
             print("LOG:",pretty_entry(e),":",error)
     conn.commit()
     conn.close()
-    print("Wrote",new_sqlite_db)
+    print("***Wrote SQLite DB on ",new_sqlite_db)
 
 
 def pipeline_test():
     #Database.DownloadRIIzip()
     db = Database("../refractive.db")
 
+    #db.check_url_version()
     #db.create_database_from_folder(yml_database_path="database", interpolation_points=200)
     #db.create_database_from_url(interpolation_points=200)
+    #db.create_database_from_url(riiurl="http://refractiveindex.info/download/database/rii-database-2015-07-05.zip")
 
-    #db.search_pages()
+    db.search_pages()
     #db.search_pages("otanicar")
     #db.search_pages("au",exact=True)
     #Id 327 for Formula2 test
@@ -313,23 +354,29 @@ def pipeline_test():
     #print(db._get_page_info(1542))
     #db.search_id(1542)
 
-    #mat = db.getMaterial(1542) #Only extinction
-    #mat = db.getMaterial(372) #Both (formula)
-    #mat = db.getMaterial(1) #Both (tabulated)
+    #mat = db.get_material(1542) #Only extinction
+    #mat = db.get_material(372) #Both (formula)
+    #mat = db.get_material(1) #Both (tabulated)
     #print("HasRefractive?",mat.has_refractive())
     #print("HasExtinction?",mat.has_extinction())
-    #print(mat.getCompleteRefractive())
-    #print(mat.getCompleteExtinction())
-    #print(mat.getPageInfo())
-    #mat.toCSV(output="mat1.csv")
+    #print(mat.get_complete_refractive())
+    #print(mat.get_complete_extinction())
+    #print(mat.get_page_info())
+    #mat.to_csv(output="mat1.csv")
 
-    #db.getMaterialCSV(1542,output="",folder="all")
-    #db.getAllMaterialCSV(outputfolder="all")
+    #db.get_material_csv(1542,output="",folder="all")
+    #db.get_material_csv_all(outputfolder="all")
 
     #db.search_n(n=0.3,delta_n=.001)
     #db.search_k(k=0.3,delta_k=.001)
     #db.search_nk(n=0.3, delta_n=0.1,k=0.3,delta_k=0.1)
 
+    #print(db.search_custom('select * from pages where shelf="main" and book="Ag" and page LIKE "%k%"'))
+    #print(db.search_custom('select wave,coeff from extcoeff where pageid = 1 and wave between 0.3 and 0.4'))
+    #print(db.search_custom('''select p.filepath, r.wave,refindex,coeff
+    #                from refractiveindex r inner join extcoeff e on r.pageid = e.pageid and r.wave = e.wave
+    #                inner join pages p on r.pageid = p.pageid
+    #                where r.wave = .301'''))
 
 if __name__ == '__main__':
     pipeline_test()
