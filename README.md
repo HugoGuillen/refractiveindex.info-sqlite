@@ -3,7 +3,7 @@ Python 3 + SQLite wrapper for the [refractiveindex.info database](http://refract
 
 Database files parsing was made with a modified version of `refractiveIndex.py` from [PyTMM project](https://github.com/kitchenknif/PyTMM) by [Pavel Dmitriev](https://github.com/kitchenknif).
 
-##Features
+## Features
 - Create SQLite database from refractiveindex yml folder.
 - Create SQLite database from refractiveindex.zip url.
 - Search database pages by approximate or exact terms.
