@@ -12,7 +12,7 @@ Book = namedtuple('Book', ['book', 'name'])
 Page = namedtuple('Page', ['page', 'name', 'path'])
 Entry = namedtuple('Entry',['id','shelf','book','page'])
 
-_riiurl = "http://refractiveindex.info/download/database/rii-database-2016-01-31.zip"
+_riiurl = "https://refractiveindex.info/download/database/rii-database-2017-09-05.zip"
 
 class Database:
 

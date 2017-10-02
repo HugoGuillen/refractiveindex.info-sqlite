@@ -58,7 +58,7 @@ class Material:
                         self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=formula,
                                                                                         rangeMin=rangeMin,
                                                                                         rangeMax=rangeMax,
-                                                                                        coefficients=coefficents,
+                                                                                        coefficients=coefficients,
                                                                                         interpolation_points=self.points)
                 elif (data['type'].split())[1] == 'nk':
 
@@ -75,14 +75,14 @@ class Material:
                     Exception('Bad Material YAML File')
 
                 formula = int((data['type'].split())[1])
-                coefficents = [float(s) for s in data['coefficients'].split()]
+                coefficients = [float(s) for s in data['coefficients'].split()]
                 rangeMin = float(data['range'].split()[0])
                 rangeMax = float(data['range'].split()[1])
                 previous_formula = True
                 self.refractiveIndex = RefractiveIndexData.SetupRefractiveIndex(formula=formula,
                                                                                 rangeMin=rangeMin,
                                                                                 rangeMax=rangeMax,
-                                                                                coefficients=coefficents,
+                                                                                coefficients=coefficients,
                                                                                 interpolation_points=self.points)
         if self.refractiveIndex is not None:
             self.rangeMin = self.refractiveIndex.rangeMin
@@ -224,8 +224,6 @@ class FormulaRefractiveIndexData:
         self.coefficients = coefficients
         self.interpolation_points = interpolation_points
 
-        if formula in [4,7,8,9]:
-            raise FormulaNotImplemented('Formula '+str(formula)+ ' not yet implemented')
 
     def get_complete_refractive(self):
         #print(self.rangeMin, self.rangeMax)
@@ -264,7 +262,14 @@ class FormulaRefractiveIndexData:
                     nsq += g(coefficients[i], coefficients[i + 1], wavelength)
                 n = numpy.sqrt(nsq)
             elif formula_type == 4:  # RefractiveIndex.INFO
-                raise FormulaNotImplemented('RefractiveIndex.INFO formula not yet implemented')
+                g = lambda wl, ci, cj, ck, cl: ci * wl**cj / (wl**2 - ck**cl)
+                n = coefficients[0]
+                n += g(wavelength, *coefficients[1:5])
+                n += g(wavelength, *coefficients[5:9])
+                for kk in range(len(coefficients[9:]) // 2):
+                    n += coefficients[9+kk] * wavelength**coefficients[9+kk+1]
+
+                n = numpy.sqrt(n)
             elif formula_type == 5:  # Cauchy
                 g = lambda c1, c2, w: c1 * w ** c2
                 n = coefficients[0]
@@ -276,11 +281,22 @@ class FormulaRefractiveIndexData:
                 for i in range(1, len(coefficients), 2):
                     n += g(coefficients[i], coefficients[i + 1], wavelength)
             elif formula_type == 7:  # Herzberger
-                raise FormulaNotImplemented('Herzberger formula not yet implemented')
+                n = coefficients[0]
+                n += coefficients[1] / (wavelength**2 - 0.028)
+                n += coefficients[2] * (1 / (wavelength**2 - 0.028))**2
+                for i, cc in enumerate(coefficients[3:]):
+                    n += cc * wavelength**(2*(i+1))
             elif formula_type == 8:  # Retro
-                raise FormulaNotImplemented('Retro formula not yet implemented')
+                n = coefficients[0]
+                n += coefficients[1] * wavelength**2 / (wavelength**2 - coefficients[2])
+                n += coefficients[3] * wavelength**2
+                n = numpy.sqrt(-(2 * n + 1) / (n - 1))
             elif formula_type == 9:  # Exotic
-                raise FormulaNotImplemented('Exotic formula not yet implemented')
+                n = coefficients[0]
+                n += coefficients[1] / (wavelength**2 - coefficients[2])
+                n += coefficients[3] * (wavelength - coefficients[4]) / \
+                     ((wavelength - coefficients[4])**2 + coefficients[5])
+                n = numpy.sqrt(n)
             else:
                 raise Exception('Bad formula type')
 
