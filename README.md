@@ -29,5 +29,5 @@ Same as the refractiveindex.info webpage: *NO GUARANTEE OF ACCURACY - Use on you
 
 ---
 ## Contributors
-[tnorth](https://github.com/tnorth) (Implementation of formulas 4,7,8, and 9)
-[p-tillmann](https://github.com/p-tillmann) (Update database format)
+- [tnorth](https://github.com/tnorth) (Implementation of formulas 4,7,8, and 9)
+- [p-tillmann](https://github.com/p-tillmann) (Update database format)
