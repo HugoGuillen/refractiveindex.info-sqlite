@@ -12,7 +12,7 @@ Book = namedtuple('Book', ['book', 'name'])
 Page = namedtuple('Page', ['page', 'name', 'path'])
 Entry = namedtuple('Entry',['id','shelf','book','page'])
 
-_riiurl = "https://refractiveindex.info/download/database/rii-database-2017-09-05.zip"
+_riiurl = "https://refractiveindex.info/download/database/rii-database-2019-02-11.zip"
 
 class Database:
 
@@ -26,7 +26,7 @@ class Database:
     def create_database_from_folder(self, yml_database_path, interpolation_points=100):
         create_sqlite_database(yml_database_path, self.db_path,interpolation_points=interpolation_points)
 
-    def create_database_from_url(self,interpolation_points=100,riiurl=_riiurl):
+    def create_database_from_url(self, riiurl=_riiurl, interpolation_points=100):
         Database.DownloadRIIzip(riiurl=riiurl)
         self.create_database_from_folder("database", interpolation_points=interpolation_points)
         pass
@@ -270,7 +270,9 @@ def extract_entry_list(db_path):
                     if 'DIVIDER' not in p:
                         page = Page(p['PAGE'],
                                     p['name'],
-                                    os.path.join(referencePath, os.path.normpath(p['path'])))
+                                    os.path.join(referencePath,
+                                                 'data',
+                                                 os.path.normpath(p['data'])))
                         entries.append(Entry(str(idx),shelf,book,page))
                         idx+=1
     return entries
