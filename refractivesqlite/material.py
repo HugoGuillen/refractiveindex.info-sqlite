@@ -7,6 +7,7 @@ class Material:
     """ Material class"""
     def __init__(self, filename, interpolation_points=100, empty=False):
         """
+
         :param filename: The name of the material file
         :interpolation_points=100: The number of interpolation_points
         :empty=False: Create an empty material instance
@@ -92,9 +93,11 @@ class Material:
 
     def get_refractiveindex(self, wavelength):
         """
+        Get the refractive index at a certain wavelenght
 
-        :param wavelength:
-        :return: :raise Exception:
+        :param wavelength: The wavelength in nm
+        :returns: refractive index
+        :raises Exception:
         """
         if self.refractiveIndex is None:
             raise Exception('No refractive index specified for this material')
@@ -103,9 +106,11 @@ class Material:
 
     def get_extinctioncoefficient(self, wavelength):
         """
+        Get the extinction coefficient
 
         :param wavelength:
-        :return: :raise NoExtinctionCoefficient:
+        :returns: extiction coefficient
+        :raises NoExtinctionCoefficient:
         """
         if self.extinctionCoefficient is None:
             raise NoExtinctionCoefficient('No extinction coefficient'
@@ -115,27 +120,52 @@ class Material:
                 get_extinction_coefficient(wavelength)
 
     def get_complete_extinction(self):
+        '''
+        Get the complete extinction coefficient information
+
+        :returns: The extinction coefficient informations as a list of lists
+        '''
+
         if self.has_extinction():
             return self.extinctionCoefficient.get_complete_extinction()
         else:
             return None
 
     def get_complete_refractive(self):
+        '''
+        Get the complete refractive information
+
+        :returns: The refractive index informations as a list of lists
+        '''
         if self.has_refractive():
             return self.refractiveIndex.get_complete_refractive()
         else:
             return None
 
     def has_refractive(self):
+        '''
+        Checks if there is a refractive index
+        '''
         return self.refractiveIndex is not None
 
     def has_extinction(self):
+        '''
+        Checks if there is a extinction coefficient
+        '''
         return self.extinctionCoefficient is not None
 
     def get_page_info(self):
+        '''
+        Get the page informations
+        '''
         return self.pageinfo
 
     def to_csv(self, output):
+        '''
+        Safe this material as a comma seperated value list
+
+        :param output: The output file
+        '''
         refr = self.get_complete_refractive()
         ext = self.get_complete_extinction()
         # FizzFuzz
@@ -172,6 +202,17 @@ class Material:
     @staticmethod
     def FromLists(pageinfo, wavelengths_r=None, refractive=None,
                   wavelengths_e=None, extinction=None):
+        '''
+        Create a material from lists of wavelength refractive indices
+        and extinction coefficients
+
+        :param pageinfo: The pageinfo of the material
+        :param wavelengths_r: A list of wavelengths for the refractive index
+        :param refractive: A list of refractive indices
+        :param wavelengths_e: A list of wavelengths_e for the extinction coeff
+        :param extinction: A list of extinction coefficients
+        :returns: A material
+        '''
         mat = Material("", empty=True)
         mat.pageinfo = pageinfo
         if refractive is not None:
@@ -193,10 +234,12 @@ class RefractiveIndexData:
     @staticmethod
     def SetupRefractiveIndex(formula,  **kwargs):
         """
-
-        :param formula:
-        :param kwargs:
-        :return: :raise Exception:
+        :param formula: An integer value specifying the formula to use
+                        pass -1 to create a tabulated refractive index data
+        :param kwargs: kwargs passed to the FormulaRefractiveIndexData
+                       or TabulatedRefractiveIndexData
+        :returns: A formula or tabulated refractive index data
+        :raises Exception:
         """
         if formula >= 0:
             return FormulaRefractiveIndexData(formula, **kwargs)
@@ -207,6 +250,7 @@ class RefractiveIndexData:
 
     def get_refractiveindex(self, wavelength):
         """
+        Not implemented yet
 
         :param wavelength:
         :raise NotImplementedError:
@@ -221,11 +265,10 @@ class FormulaRefractiveIndexData:
     def __init__(self, formula, rangeMin, rangeMax, coefficients,
                  interpolation_points):
         """
-
-        :param formula:
-        :param rangeMin:
-        :param rangeMax:
-        :param coefficients:
+        :param formula: An integer value specifying the formula
+        :param rangeMin: The lower bound for the wavelength
+        :param rangeMax: The upper bound for the wavelength
+        :param coefficients: Coefficient to interpolate over
         """
         self.formula = formula
         self.rangeMin = rangeMin
@@ -234,7 +277,12 @@ class FormulaRefractiveIndexData:
         self.interpolation_points = interpolation_points
 
     def get_complete_refractive(self):
-        # print(self.rangeMin, self.rangeMax)
+        '''
+        Get the complete refractive index for the whole wavelength intervall
+
+        :returns: A list of refractive indices over the whole
+                  wavelength intervall (len = interpolation_points)
+        '''
         wavelength = numpy.linspace(
             self.rangeMin, self.rangeMax, num=self.interpolation_points)
         extlist = [[
@@ -246,9 +294,12 @@ class FormulaRefractiveIndexData:
 
     def get_refractiveindex(self, wavelength):
         """
+        Get the refractive index at a certain wavelength
+        using the speficied interpolation formula
 
         :param wavelength:
-        :return: :raise Exception:
+        :returns: The interpolated refractive index at wavelength
+        :raises Exception:
         """
         wavelength /= 1000.0
         if self.rangeMin <= wavelength <= self.rangeMax:
@@ -343,6 +394,8 @@ class TabulatedRefractiveIndexData:
 
     def __init__(self, wavelengths, values):
         """
+        Crete a TabulatedRefractiveIndexData from a list of
+        wavelengths and values
 
         :param wavelengths:
         :param values:
@@ -355,19 +408,23 @@ class TabulatedRefractiveIndexData:
         else:
             self.refractiveFunction = scipy.interpolate.interp1d(wavelengths,
                                                                  values)
-
         self.wavelengths = wavelengths
         self.coefficients = values
 
     @staticmethod
     def FromLists(wavelengths, values):
+        """
+        Crete a TabulatedRefractiveIndexData from a list of
+        wavelengths and values
+        """
         return TabulatedRefractiveIndexData(wavelengths, values)
 
     def get_refractiveindex(self, wavelength):
         """
-
+        Get the refractive index at a certain wavelength
         :param wavelength:
-        :return: :raise Exception:
+        :returns: The refractive at wavelength
+        :raises Exception:
         """
         wavelength /= 1000.0
         if self.rangeMin == self.rangeMax and self.rangeMin == wavelength:
@@ -381,10 +438,14 @@ class TabulatedRefractiveIndexData:
                             .format(wavelength, self.rangeMin, self.rangeMax))
 
     def get_complete_refractive(self):
+        """
+        Geth the complete refractive inde data as a list of lists
+
+        :returns: The refractive index data in the form [wavlenght, index]
+        """
         extlist = [[
             self.wavelengths[i], self.coefficients[i]]
             for i in range(len(self.wavelengths))]
-        # return numpy.array(extlist)
         return extlist
 
 
@@ -397,7 +458,6 @@ class ExtinctionCoefficientData:
     @staticmethod
     def SetupExtinctionCoefficient(wavelengths, values):
         """
-
         :param wavelengths:
         :param values:
         :return:
@@ -410,9 +470,8 @@ class ExtinctionCoefficientData:
 
     def __init__(self, wavelengths, coefficients):
         """
-
-        :param wavelengths:
-        :param coefficients:
+        :param wavelengths: A list of wavelengths
+        :param coefficients: A list of extinction coefficients
         """
         self.extCoeffFunction = scipy.interpolate.interp1d(wavelengths,
                                                            coefficients)
@@ -423,9 +482,11 @@ class ExtinctionCoefficientData:
 
     def get_extinction_coefficient(self, wavelength):
         """
+        Get the interpolated extinction coefficient at a wavelength
 
         :param wavelength:
-        :return: :raise Exception:
+        :returns: The extinction coefficient at wavelength
+        :raises Exception:
         """
         wavelength /= 1000.0
         if self.rangeMin <= wavelength <= self.rangeMax:
@@ -436,10 +497,16 @@ class ExtinctionCoefficientData:
                             format(wavelength, self.rangeMin, self.rangeMax))
 
     def get_complete_extinction(self):
+        '''
+        Get the complete extinction coefficient for the whole
+        wavelength intervall
+
+        :returns: A list of refractive indices over the whole
+                  wavelength intervall (len = interpolation_points)
+        '''
         extlist = [[
             self.wavelengths[i], self.coefficients[i]]
             for i in range(len(self.wavelengths))]
-        # return numpy.array(extlist)
         return extlist
 
 

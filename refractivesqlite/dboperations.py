@@ -18,6 +18,13 @@ _riiurl = "https://refractiveindex.info/download/database/" +\
 
 class Database:
     def __init__(self, sqlitedbpath):
+        '''
+        Construct a database instance
+
+        :param sqlitedbpath: The path of the sqlitedatabse
+                             it has to exist even if you want to create
+                             a new database
+        '''
         self.db_path = sqlitedbpath
         if not os.path.isfile(sqlitedbpath):
             print("Database file not found.")
@@ -26,6 +33,12 @@ class Database:
 
     def create_database_from_folder(self, yml_database_path,
                                     interpolation_points=100):
+        '''
+        Create a sql database from a yml database path
+
+        :param yml_database_path: The path to the yaml database
+        :param interpolation_points: The number of interpolation_points to use
+        '''
         create_sqlite_database(yml_database_path,
                                self.db_path,
                                interpolation_points=interpolation_points)
@@ -33,6 +46,13 @@ class Database:
     def create_database_from_url(self,
                                  riiurl=_riiurl,
                                  interpolation_points=100):
+        '''
+        Create a sqlite database from an url
+
+        :param riiurl: The url where to download the zip compressed
+                       refractive index database from
+        :param interpolation_points: The number of interpolation_points to use
+        '''
         Database.DownloadRIIzip(riiurl=riiurl)
         self.create_database_from_folder(
             "database", interpolation_points=interpolation_points)
@@ -41,6 +61,12 @@ class Database:
         print(_riiurl)
 
     def search_custom(self, sqlquery):
+        '''
+        Make a custom sql query
+
+        :param sqlquery: The sql query to make
+        :retrurn: Return all results of the query
+        '''
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute(sqlquery)
@@ -53,6 +79,13 @@ class Database:
         return results
 
     def search_pages(self, term="", exact=False):
+        '''
+        Search for pages by a looking for the searchterm
+        in shelf, book, page and filename
+
+        :param term: The search term to look for
+        :param exact: If false term is extended to %term%
+        '''
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         if not exact:
@@ -76,6 +109,11 @@ class Database:
         # return results
 
     def search_id(self, pageid):
+        '''
+        Print page informations
+
+        :param pageid: The id of the page to print
+        '''
         info = self._get_page_info(pageid)
         if info is None:
             print("PageID not found.")
@@ -84,6 +122,13 @@ class Database:
             print("\t".join(map(str, info.values())))
 
     def search_n(self, n, delta_n):
+        '''
+        Search for materials with a fraction index between
+        n and delta_n
+
+        :param n: The lower bound of the fraction index
+        :param delta_m: The upper bound of the fraction index
+        '''
         print("*Search n =", n, "delta_n = ", delta_n)
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -102,6 +147,13 @@ class Database:
         conn.close()
 
     def search_k(self, k, delta_k):
+        '''
+        Search for materials with an extinction coefficient between
+        k and delta_k
+
+        :param k: The lower bound of the extinction coefficient
+        :param delta_k: The upper bound of the extinction coefficient
+        '''
         print("*Search k =", k, "delta_k = ", delta_k)
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -120,6 +172,15 @@ class Database:
         conn.close()
 
     def search_nk(self, n, delta_n, k, delta_k):
+        '''
+        Search for materials with fraction indice and extinction
+        coefficient between n and delta_n and k and delta_k
+
+        :param n: The lower bound of the fraction index
+        :param delta_n: The upper bound of the fraction index
+        :param k: The lower bound of the extinction coefficient
+        :param delta_k: The upper bound of the extinction coefficient
+        '''
         print("*Search n =", n, "delta_n = ", delta_n, "k = ", k,
               "delta_k = ", delta_k)
         conn = sqlite3.connect(self.db_path)
@@ -141,6 +202,12 @@ class Database:
         conn.close()
 
     def get_material(self, pageid):
+        '''
+        Get the material from a pageid
+
+        :param pageid: The pageid of the material
+        :returns: Material
+        '''
         pagedata = self._get_page_info(pageid)
         if pagedata is None:
             print("PageID not found.")
@@ -177,6 +244,12 @@ class Database:
                                       extinction=extinction)
 
     def get_material_n_numpy(self, pageid):
+        '''
+        Get the refraction index of a material
+
+        :param pageid: The pageid of the material
+        :return: The refraction data as a numpy array
+        '''
         mat = self.get_material(pageid)
         if mat is None:
             return None
@@ -187,6 +260,12 @@ class Database:
         return np.array(n)
 
     def get_material_k_numpy(self, pageid):
+        '''
+        Get the extinction coefficient of a material
+
+        :param pageid: The pageid of the material
+        :return: The extinction data as a numpy array
+        '''
         mat = self.get_material(pageid)
         if mat is None:
             return None
@@ -197,6 +276,14 @@ class Database:
         return np.array(k)
 
     def get_material_csv(self, pageid, output="", folder=""):
+        '''
+        Safe a material as a comma seperated value list
+
+        :param pageid: The pageid of the material
+        :param output: The name of the output file
+                       default is [pageid][shelf][book][page].csv
+        :param folder: The output folder default is ./
+        '''
         mat = self.get_material(pageid)
         if mat is None:
             print("PageID not found.")
@@ -211,6 +298,11 @@ class Database:
         mat.to_csv(output)
 
     def get_material_csv_all(self, outputfolder):
+        '''
+        Safe all materials as comma seperated value lists
+
+        :param outputfolder: The output folder
+        '''
         allids = self._get_all_pageids()
         for id in allids:
             print("Processing", id)
@@ -226,6 +318,12 @@ class Database:
         return names
 
     def _get_page_info(self, pageid):
+        '''
+        Query all page information for a page
+
+        :param pageid: The id of the page to query
+        :returns: An ordered dict of page informations
+        '''
         columns = self._get_pages_columns()
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -244,6 +342,11 @@ class Database:
             return data
 
     def _get_all_pageids(self):
+        '''
+        Query all page ids from the sqlite database
+
+        :returns: A lis of pageids
+        '''
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute('SELECT pageid FROM pages')
@@ -257,6 +360,13 @@ class Database:
 
     @staticmethod
     def DownloadRIIzip(outputfolder="", riiurl=_riiurl):
+        """
+        Download the refractive index info database
+
+        :param outputfolder: The output folder ./ as default
+        :param riiurl: The url from where to download the database
+        :returns: True on success, false otherwise
+        """
         import requests
         import zipfile
         import io
@@ -312,6 +422,14 @@ def pretty_entry(entry):
 def create_sqlite_database(refractiveindex_db_path,
                            new_sqlite_db,
                            interpolation_points=100):
+    '''
+    Creates a new sqlite database containing a pages, refractiveindex
+    and a extcoeff table.
+
+    :param refractiveindex_db_path: Path to the refractiveindex db
+    :new_sqlite_db: Path to the sqlite database
+    :interpolation_points=100: The number of interpolation points
+    '''
     conn = sqlite3.connect(new_sqlite_db)
     c = conn.cursor()
     c.execute('''DROP TABLE IF EXISTS pages;''')
@@ -336,6 +454,13 @@ def create_sqlite_database(refractiveindex_db_path,
 def _populate_sqlite_database(refractiveindex_db_path,
                               new_sqlite_db,
                               interpolation_points=100):
+    '''
+    Insert and commit the materials to the sqlite database
+
+    :param refractiveindex_db_path: Path to the refractiveindex db
+    :new_sqlite_db: Path to the sqlite database
+    :interpolation_points=100: The number of interpolation points
+    '''
     entries = extract_entry_list(refractiveindex_db_path)
     conn = sqlite3.connect(new_sqlite_db)
     c = conn.cursor()
