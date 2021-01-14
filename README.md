@@ -25,7 +25,7 @@ Just copy the `refractivesqlite` folder to your project, and you are ready. For 
 Same as the refractiveindex.info webpage: *NO GUARANTEE OF ACCURACY - Use on your own risk*.
 
 ## Version
-2019-08-05
+2021-01-14
 
 ---
 ## Contributors
