@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "refractivesqlite"
+version = "2021.1.14"
+description = "SQLite wrapper for the refractiveindex.info database"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyyaml",
+    "requests",
+]
+
+[project.urls]
+Repository = "https://github.com/HugoGuillen/refractiveindex.info-sqlite"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["refractivesqlite*"]
