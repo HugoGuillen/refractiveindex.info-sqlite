@@ -1,3 +1,6 @@
+import math
+
+import numpy
 import pytest
 
 from refractivesqlite.optical_data import (
@@ -43,13 +46,26 @@ class TestTabulatedRefractiveIndexData:
         assert self.data.rangeMax == 1.0
 
     def test_get_refractiveindex_in_range(self):
-        # wavelength arg is in nm; 500 nm = 0.5 um
+        # 500 nm = 0.5 um
         n = self.data.get_refractiveindex(500)
         assert 1.3 < n < 1.6
 
-    def test_get_refractiveindex_out_of_range(self):
-        with pytest.raises(Exception, match="out of bounds"):
-            self.data.get_refractiveindex(2000)
+    def test_get_refractiveindex_out_of_range_returns_nan(self):
+        n = self.data.get_refractiveindex(2000)
+        assert math.isnan(n)
+
+    def test_get_refractiveindex_array_input(self):
+        wls = numpy.array([300, 500, 700, 1000])
+        result = self.data.get_refractiveindex(wls)
+        assert result.shape == (4,)
+        assert not numpy.any(numpy.isnan(result))
+
+    def test_get_refractiveindex_array_partial_nan(self):
+        wls = numpy.array([300, 500, 2000])
+        result = self.data.get_refractiveindex(wls)
+        assert not numpy.isnan(result[0])
+        assert not numpy.isnan(result[1])
+        assert numpy.isnan(result[2])
 
     def test_get_complete_refractive(self):
         result = self.data.get_complete_refractive()
@@ -78,9 +94,15 @@ class TestExtinctionCoefficientData:
         k = self.data.get_extinction_coefficient(500)
         assert 0.0 < k < 0.05
 
-    def test_get_extinction_out_of_range(self):
-        with pytest.raises(Exception, match="out of bounds"):
-            self.data.get_extinction_coefficient(2000)
+    def test_get_extinction_out_of_range_returns_nan(self):
+        k = self.data.get_extinction_coefficient(2000)
+        assert math.isnan(k)
+
+    def test_get_extinction_array_input(self):
+        wls = numpy.array([300, 500, 700, 1000])
+        result = self.data.get_extinction_coefficient(wls)
+        assert result.shape == (4,)
+        assert not numpy.any(numpy.isnan(result))
 
     def test_get_complete_extinction(self):
         result = self.data.get_complete_extinction()
@@ -102,15 +124,60 @@ class TestFormulaRefractiveIndexData:
 
     def test_get_refractiveindex_in_range(self):
         data = self._make_sellmeier()
-        n = data.get_refractiveindex(589000)  # 589 um in nm
+        n = data.get_refractiveindex(589)  # 589 nm
         assert 1.4 < n < 1.6
 
-    def test_get_refractiveindex_out_of_range(self):
+    def test_get_refractiveindex_out_of_range_returns_nan(self):
         data = self._make_sellmeier()
-        with pytest.raises(Exception, match="out of bounds"):
-            data.get_refractiveindex(100)
+        n = data.get_refractiveindex(100)  # 100 nm, below rangeMin
+        assert math.isnan(n)
+
+    def test_get_refractiveindex_array_input(self):
+        data = self._make_sellmeier()
+        wls = numpy.array([400, 500, 600, 700])  # nm
+        result = data.get_refractiveindex(wls)
+        assert result.shape == (4,)
+        assert not numpy.any(numpy.isnan(result))
+
+    def test_get_refractiveindex_array_partial_nan(self):
+        data = self._make_sellmeier()
+        wls = numpy.array([100, 589, 3000])  # nm — first and last out of range
+        result = data.get_refractiveindex(wls)
+        assert numpy.isnan(result[0])
+        assert not numpy.isnan(result[1])
+        assert numpy.isnan(result[2])
 
     def test_get_complete_refractive_length(self):
         data = self._make_sellmeier()
         result = data.get_complete_refractive()
         assert len(result) == 50
+
+    def test_formula4_correctness(self):
+        # TiO2 (anatase) — formula 4 from refractiveindex.info
+        # Coefficients from Devore (1951), valid 0.43–1.53 um
+        data = FormulaRefractiveIndexData(
+            formula=4,
+            rangeMin=0.43,
+            rangeMax=1.53,
+            coefficients=[
+                5.913, 0.2441, 0.0803, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+            ],
+            interpolation_points=20,
+        )
+        n = data.get_refractiveindex(600)  # 600 nm
+        # TiO2 has n ~ 2.5 in the visible
+        assert 2.0 < n < 3.5
+
+    def test_formula4_short_coefficients(self):
+        # Ensure formula 4 doesn't crash with fewer than 9 coefficients
+        data = FormulaRefractiveIndexData(
+            formula=4,
+            rangeMin=0.3,
+            rangeMax=1.0,
+            coefficients=[2.0],  # only C0
+            interpolation_points=5,
+        )
+        n = data.get_refractiveindex(500)
+        assert not math.isnan(n)
+        assert n == pytest.approx(math.sqrt(2.0), rel=1e-6)
