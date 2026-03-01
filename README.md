@@ -11,7 +11,9 @@ YML parsing is based on a modified version of `refractiveIndex.py` from the [PyT
 - Build a local SQLite database from the upstream YML folder or directly from a `.zip` URL.
 - Search materials by name, shelf/book/page, refractive index (*n*), or extinction coefficient (*k*).
 - Run arbitrary SQL queries against the database.
-- Load a material and retrieve *n* or *k* at any wavelength (interpolated).
+- Load a material and retrieve *n*, *k*, or ε at any wavelength — **scalar or NumPy array input**.
+- Query in **any wavelength unit**: nm, µm, m, mm, Å, cm⁻¹, THz, or eV.
+- Out-of-range wavelengths return **NaN** instead of raising exceptions, enabling clean vectorised workflows.
 - Export optical data to NumPy arrays or CSV files.
 - Use `Material.FromLists` to wrap your own *n*/*k* data without a database.
 
@@ -51,11 +53,17 @@ db.search_pages("BK7")
 
 # 4. Load and query it
 mat = db.get_material(pageid)
-print(mat.get_refractiveindex(589))        # n at 589 nm
-print(mat.get_extinctioncoefficient(589))  # k at 589 nm
+print(mat.get_refractiveindex(589))          # n at 589 nm
+print(mat.get_refractiveindex(2.48, unit='eV'))   # same point, eV input
+print(mat.get_extinctioncoefficient(589))    # k at 589 nm
+print(mat.get_epsilon(589))                  # complex permittivity ε = (n+ik)²
 
-# 5. Get everything as a NumPy array  (shape N×2: wavelength µm, value)
+# 5. Vectorised query over a wavelength array
 import numpy as np
+wls = np.linspace(400, 800, 200)             # nm
+n_arr = mat.get_refractiveindex(wls)         # shape (200,), NaN outside range
+
+# 6. Get everything as a NumPy array  (shape N×2: wavelength µm, value)
 n = np.array(mat.get_complete_refractive())
 k = np.array(mat.get_complete_extinction())
 ```
@@ -138,14 +146,75 @@ db.get_material_csv_all(outputfolder="output/")
 
 Returned by `db.get_material()`, or built from your own data with `Material.FromLists`.
 
+#### Predicates
+
 ```python
 mat.has_refractive()                   # bool
 mat.has_extinction()                   # bool
-mat.get_page_info()                    # OrderedDict of database metadata
+mat.get_page_info()                    # dict of database metadata
+```
 
-mat.get_refractiveindex(550)           # n at 550 nm (interpolated)
-mat.get_extinctioncoefficient(550)     # k at 550 nm (interpolated)
+#### Point queries — scalar or array input
 
+All query methods accept a scalar wavelength **or** a NumPy array. Values outside the
+valid range return **NaN** rather than raising an exception.
+
+```python
+# Default unit: nm
+mat.get_refractiveindex(550)                       # scalar
+mat.get_extinctioncoefficient(550)                 # scalar
+
+# Any supported unit (see table below)
+mat.get_refractiveindex(0.55, unit='um')           # µm
+mat.get_refractiveindex(2.25, unit='eV')           # electron-volts
+mat.get_refractiveindex(18182, unit='cm-1')        # wavenumbers
+
+# Vectorised — returns ndarray, NaN outside valid range
+import numpy as np
+wls = np.linspace(400, 800, 200)
+n = mat.get_refractiveindex(wls)           # shape (200,)
+k = mat.get_extinctioncoefficient(wls)     # shape (200,)
+```
+
+**Supported units:**
+
+| `unit=` | Physical quantity |
+|---|---|
+| `'m'` | metres |
+| `'mm'` | millimetres |
+| `'um'` | micrometres (µm) |
+| `'nm'` *(default)* | nanometres |
+| `'A'` | ångströms |
+| `'cm-1'` | wavenumbers (cm⁻¹) |
+| `'THz'` | terahertz frequency |
+| `'eV'` | electron-volts |
+
+#### Complex permittivity
+
+```python
+# ε = (n + ik)² — physics convention (exp(−iωt)), default
+eps = mat.get_epsilon(550)
+
+# ε = (n − ik)² — engineering convention (exp(+iωt))
+eps = mat.get_epsilon(550, convention='exp_plus_i_omega_t')
+
+# Works with any unit and array input
+eps = mat.get_epsilon(np.linspace(400, 800, 200), unit='nm')
+```
+
+If no extinction coefficient is available, *k* is taken as 0 and ε is real.
+
+#### Wavelength range
+
+```python
+lo, hi = mat.get_wl_range()            # (min, max) in nm
+lo, hi = mat.get_wl_range(unit='um')   # in µm
+lo, hi = mat.get_wl_range(unit='eV')   # in eV
+```
+
+#### Bulk data retrieval
+
+```python
 mat.get_complete_refractive()          # list of [wavelength_µm, n]
 mat.get_complete_extinction()          # list of [wavelength_µm, k]
 
@@ -164,6 +233,7 @@ mat = Material.FromLists(
     wavelengths_e=[0.4, 0.6, 0.8],  extinction=[1e-4, 8e-5, 6e-5],
 )
 print(mat.get_refractiveindex(500))
+print(mat.get_epsilon(500))
 ```
 
 ---
@@ -177,11 +247,12 @@ refractivesqlite/
 ├── material.py        # Material — per-entry interface
 ├── optical_data.py    # RefractiveIndexData, FormulaRefractiveIndexData,
 │                      #   TabulatedRefractiveIndexData, ExtinctionCoefficientData
-├── builder.py         # DB creation from YML folder
+├── builder.py         # DB creation from YML folder (with catalog cache)
 ├── downloader.py      # download_rii_zip
 ├── models.py          # Shelf / Book / Page / Entry namedtuples
 ├── exceptions.py      # NoExtinctionCoefficient, FormulaNotImplemented
-└── _constants.py      # RII_DATABASE_URL
+├── _constants.py      # RII_DATABASE_URL
+└── _units.py          # Wavelength unit registry (to_nm / from_nm)
 
 examples/
 └── Tutorial.ipynb     # interactive walkthrough
