@@ -129,7 +129,12 @@ results = db.search_custom(
 #### Retrieving data
 
 ```python
-mat = db.get_material(37)              # returns a Material object
+mat = db.get_material(37)              # returns a Material object (tabulated)
+
+# Load from YAML to access the original dispersion formula & coefficients
+mat_yml = db.get_material_from_yml(37, yml_database_path="database")
+print(mat_yml.refractiveIndex.formula)       # e.g. 1 (Sellmeier)
+print(mat_yml.refractiveIndex.coefficients)  # list of floats
 
 # NumPy arrays directly from the database (shape N×2)
 n_arr = db.get_material_n_numpy(37)

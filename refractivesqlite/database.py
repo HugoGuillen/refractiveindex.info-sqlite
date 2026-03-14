@@ -238,6 +238,39 @@ class Database:
                                       wavelengths_e=wavelengths_e,
                                       extinction=extinction)
 
+    def get_material_from_yml(self, pageid, yml_database_path="database"):
+        '''
+        Load a material directly from its YAML file, preserving the
+        original dispersion formula and coefficients.
+
+        Unlike :meth:`get_material` (which returns tabulated data from
+        SQLite), this method reads the YAML source so that
+        ``mat.refractiveIndex.formula`` and
+        ``mat.refractiveIndex.coefficients`` are available for
+        formula-based materials.
+
+        :param pageid: The pageid of the material
+        :param yml_database_path: Path to the YML database folder
+                                  (the one containing catalog-nk.yml
+                                  or library.yml). Default: "database".
+        :returns: Material loaded from YAML, or None if not found.
+        '''
+        pagedata = self._get_page_info(pageid)
+        if pagedata is None:
+            print("PageID not found.")
+            return None
+        filepath = pagedata['filepath']
+        yml_path = os.path.join(yml_database_path, 'data', filepath)
+        if not os.path.isfile(yml_path):
+            print("YAML file not found at", yml_path)
+            print("Pass yml_database_path= pointing to the folder "
+                  "containing catalog-nk.yml or library.yml.")
+            return None
+        mat = Material(yml_path)
+        mat.pageinfo = pagedata
+        print("Material", filepath, "loaded from YAML.")
+        return mat
+
     def get_material_n_numpy(self, pageid):
         '''
         Get the refraction index of a material
