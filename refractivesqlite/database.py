@@ -47,9 +47,11 @@ class Database:
                        refractive index database from
         :param interpolation_points: The number of interpolation_points to use
         '''
-        download_rii_zip(riiurl=riiurl)
+        db_folder = download_rii_zip(riiurl=riiurl)
+        if db_folder is None:
+            raise RuntimeError("Failed to download the database from " + riiurl)
         self.create_database_from_folder(
-            "database", interpolation_points=interpolation_points)
+            db_folder, interpolation_points=interpolation_points)
 
     def check_url_version(self):
         print(RII_DATABASE_URL)
