@@ -140,9 +140,22 @@ class Material:
 
     def get_epsilon(self, wavelength, unit='nm',
                     convention='exp_minus_i_omega_t'):
-        """Return the complex permittivity ε = (n + ik)² at *wavelength*.
+        """Return the complex dielectric function (permittivity) at *wavelength*.
 
-        If no extinction coefficient is available, k is taken as 0.
+        The result is a **complex** number (or array of complex):
+
+            ε = ε₁ + iε₂ = (n + ik)²
+
+        where ε₁ = n² − k² and ε₂ = 2nk.
+
+        To obtain the real and imaginary parts separately::
+
+            eps = mat.get_epsilon(633)
+            eps_real = eps.real   # ε₁ = n² − k²
+            eps_imag = eps.imag   # ε₂ = 2nk
+
+        If no extinction coefficient is available, k is taken as 0 and the
+        result is purely real (ε = n²).
 
         :param wavelength: Wavelength (scalar or array-like) in *unit*.
         :param unit: Wavelength unit. Default: 'nm'.
@@ -151,6 +164,7 @@ class Material:
             ε = (n + ik)²; ``'exp_plus_i_omega_t'`` (engineering) gives
             ε = (n − ik)².
         :returns: Complex permittivity (complex or ndarray of complex).
+            Use ``.real`` for ε₁ and ``.imag`` for ε₂.
         """
         n = self.get_refractiveindex(wavelength, unit=unit)
         try:
