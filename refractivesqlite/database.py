@@ -255,20 +255,38 @@ class Database:
                                   or library.yml). Default: "database".
         :returns: Material loaded from YAML, or None if not found.
         '''
+        from refractivesqlite.builder import extract_entry_list
+
         pagedata = self._get_page_info(pageid)
         if pagedata is None:
             print("PageID not found.")
             return None
-        filepath = pagedata['filepath']
-        yml_path = os.path.join(yml_database_path, 'data', filepath)
-        if not os.path.isfile(yml_path):
-            print("YAML file not found at", yml_path)
+
+        # The filepath stored in SQLite is truncated (last 3 path
+        # components only), so we look up the full path from the
+        # catalog by matching the pageid index.
+        try:
+            entries = extract_entry_list(yml_database_path)
+        except FileNotFoundError:
+            print("YML database folder not found at", yml_database_path)
             print("Pass yml_database_path= pointing to the folder "
                   "containing catalog-nk.yml or library.yml.")
             return None
+
+        pid = int(pageid)
+        if pid < 0 or pid >= len(entries):
+            print("PageID", pageid, "out of range for YML catalog "
+                  f"(0–{len(entries)-1}).")
+            return None
+
+        yml_path = entries[pid].page.path
+        if not os.path.isfile(yml_path):
+            print("YAML file not found at", yml_path)
+            return None
+
         mat = Material(yml_path)
         mat.pageinfo = pagedata
-        print("Material", filepath, "loaded from YAML.")
+        print("Material", entries[pid].page.page, "loaded from YAML.")
         return mat
 
     def get_material_n_numpy(self, pageid):
