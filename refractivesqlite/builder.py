@@ -14,12 +14,30 @@ from refractivesqlite import material as material_module
 _catalog_cache = {}
 
 
+def _find_catalog_file(db_path):
+    """Locate the catalog YAML file in *db_path*.
+
+    Newer databases (>= 2025) use ``catalog-nk.yml``; older ones use
+    ``library.yml``.  Returns the full path to whichever is found.
+
+    :raises FileNotFoundError: If neither file exists.
+    """
+    for name in ('catalog-nk.yml', 'library.yml'):
+        path = os.path.join(db_path, name)
+        if os.path.isfile(path):
+            return path
+    raise FileNotFoundError(
+        'No catalog file found in {}. '
+        'Expected catalog-nk.yml or library.yml.'.format(db_path))
+
+
 def extract_entry_list(db_path):
     """Return a list of :class:`~refractivesqlite.models.Entry` objects
-    parsed from *db_path*/library.yml.
+    parsed from the catalog file in *db_path*.
 
-    Results are cached per normalised path so that the YAML file is read
-    at most once per process.
+    Supports both ``catalog-nk.yml`` (>= 2025) and ``library.yml``
+    (legacy).  Results are cached per normalised path so that the YAML
+    file is read at most once per process.
     """
     entries = []
     referencePath = os.path.normpath(db_path)
@@ -27,14 +45,15 @@ def extract_entry_list(db_path):
     if referencePath in _catalog_cache:
         catalog = _catalog_cache[referencePath]
     else:
-        library_yml_path = os.path.join(
-            referencePath, os.path.normpath('library.yml'))
-        with open(library_yml_path, 'r') as f:
+        catalog_path = _find_catalog_file(referencePath)
+        with open(catalog_path, 'r') as f:
             catalog = yaml.load(f, Loader=_YamlLoader)
         _catalog_cache[referencePath] = catalog
 
     idx = 0
     for sh in catalog:
+        if 'DIVIDER' in sh or 'SHELF' not in sh:
+            continue
         shelf = Shelf(sh['SHELF'], sh['name'])
         for b in sh['content']:
             if 'DIVIDER' not in b:
